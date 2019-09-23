@@ -2,18 +2,15 @@ import requests
 import json
 import time
 import math
-
 import dbhelper
-
-from comment import *
+from comment import Comment
 
 
 def fetch_url(url):
     headers = {
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
+        'accept': """text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8""",
+        'user-agent': """Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36""",
     }
-
     try:
         r = requests.get(url, headers=headers)
         r.raise_for_status()
@@ -45,6 +42,7 @@ def form_url(oid, page):
 def get_pages(oid):
     base_url = 'https://api.bilibili.com/x/v2/reply?type=1&oid='
     html = fetch_url(base_url + str(oid))
+    assert html is not None, 'Html is None.'
     data = json.loads(html)['data']
     pages = math.ceil(data['page']['count'] / data['page']['size'])
     return pages
@@ -67,8 +65,8 @@ def connect_to_db():
 if __name__ == '__main__':
     conn, c = connect_to_db()
 
-    oid = 此处是视频ID
-    url = 'https://api.bilibili.com/x/v2/reply?type=1&oid=此处是视频ID'
+    oid = 68380588
+    url = 'https://api.bilibili.com/x/v2/reply?type=1&oid=68380588'
     html = fetch_url(url)
 
     pages = get_pages(oid)
@@ -85,17 +83,25 @@ if __name__ == '__main__':
     comments = []
     for reply in replies:
         # mid, floor, username, gender, ctime, content, likes, rcounts, rpid
-        comment = Comment(mid=reply['mid'], floor=reply['floor'], username=reply['member']
-                          ['uname'], gender=reply['member']['sex'], ctime=reply['ctime'],
-                          content=reply['content']['message'], likes=reply['like'],
-                          rcounts=reply['rcount'], rpid=reply['rpid'])
+        comment = Comment(mid=reply['mid'],
+                          username=reply['member']['uname'], 
+                          gender=reply['member']['sex'],
+                          ctime=reply['ctime'],
+                          content=reply['content']['message'],
+                          likes=reply['like'],
+                          rcount=reply['rcount'],
+                          rpid=reply['rpid'])
         comments.append(comment)
         if reply['rcount'] > 0:
             for item in reply['replies']:
-                comment = Comment(mid=item['mid'], floor=item['floor'], username=item['member']
-                                  ['uname'], gender=item['member']['sex'], ctime=item['ctime'],
-                                  content=item['content']['message'], likes=item['like'],
-                                  rcounts=item['rcount'], rpid=item['rpid'])
+                comment = Comment(mid=item['mid'],
+                                  username=item['member']['uname'], 
+                                  gender=item['member']['sex'],
+                                  ctime=item['ctime'],
+                                  content=item['content']['message'],
+                                  likes=item['like'],
+                                  rcount=item['rcount'],
+                                  rpid=item['rpid'])
                 comments.append(comment)
 
     for item in comments:
