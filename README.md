@@ -4,6 +4,11 @@
 
 暂时没有使用多线程或者多进程，测试时候大概10分钟可以抓取50000条数据。
 
+## 结果展示
+同时存入本地MySQL数据库和CSV文件, CSV格式如下。
+![](./pics/format.png)
+
+
 ## [改进后]使用方法
 
 #### Step1:
@@ -41,6 +46,6 @@ comment_tablename = "Comments"
 
 
 
-## 更新进程
+## 更新进程[已完成]
 
 [Rebuilding](https://github.com/shenxiangzhuang/Bilibili-Lottery/projects/1)

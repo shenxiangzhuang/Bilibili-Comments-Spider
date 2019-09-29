@@ -1,3 +1,4 @@
+import csv
 import pymysql
 from comment import Comment
 
@@ -46,17 +47,27 @@ def insert_comment(c, conn, comments):
     conn.commit()
 
 
-# 获得满足条件的表内数据
-def get_all_by_condition(c, tablename, condition_name, condition):
-    sql = "SELECT * FROM " + tablename + " WHERE " + \
-          condition_name + " =" + condition
+# 获取相应表内所有数据
+def get_all(c, tablename):
+    sql = "SELECT * FROM " + tablename
     c.execute(sql)
     return c.fetchall()
 
 
-# 获取相应表内所有数据
-def get_all(c, tablename):
-    sql = "SELECT * FROM " + tablename
+def data_table_to_csv(c, conn, filename=comment_tablename):
+    path = './dataset/' + filename + '.csv'
+    comments = get_all(c, comment_tablename)
+    with open(path, 'w') as f:
+        writer = csv.writer(f)
+        writer.writerow(["mid", "username", "rpid", "gender",
+                          "content", "ctime", "likes", "rcount"])
+        writer.writerows(comments)
+
+
+# 获得满足条件的表内数据
+def get_all_by_condition(c, tablename, condition_name, condition):
+    sql = "SELECT * FROM " + tablename + " WHERE " + \
+          condition_name + " =" + condition
     c.execute(sql)
     return c.fetchall()
 

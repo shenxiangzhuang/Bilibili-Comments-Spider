@@ -123,4 +123,7 @@ if __name__ == '__main__':
         get_av_comments(int(oid))
     elif args.type == 'play':
         get_play_comments(url)
+
+    # to csv
+    dbhelper.data_table_to_csv(c, conn)
     conn.close()
