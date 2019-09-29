@@ -13,3 +13,9 @@ class Comment:
         self.content = content
         self.likes = likes
         self.rcount = rcount
+
+    def values(self):
+        return (self.mid, self.username,
+                self.rpid, self.gender,
+                self.content, self.ctime,
+                self.likes, self.rcount)

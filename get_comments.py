@@ -1,8 +1,10 @@
+import re
 import requests
 import json
 import time
 import math
 import dbhelper
+import argparse
 from comment import Comment
 
 
@@ -28,7 +30,6 @@ def fetch_url(url):
 def parse_html(html):
     s = json.loads(html)
 
-    # print(str(s['data']['page']['count']))
     reply_list = []
     reply_list = s['data']['replies']
     return reply_list
@@ -56,25 +57,13 @@ def check_exist_comment(comm, comms):
     return existed
 
 
-# 连接到数据库
-def connect_to_db():
-    conn, c = dbhelper.connect_db()
-    return conn, c
-
-
-if __name__ == '__main__':
-    conn, c = connect_to_db()
-
-    oid = 68380588
-    url = 'https://api.bilibili.com/x/v2/reply?type=1&oid=68380588'
-    html = fetch_url(url)
-
+# 抓取一个视频，或一个番剧其中一集中所有的评论
+def get_av_comments(oid):
+    url = f'https://api.bilibili.com/x/v2/reply?type=1&oid={oid}'
+    fetch_url(url)
     pages = get_pages(oid)
-
     replies = []
-
-    print(pages)
-
+    # print(pages)
     for i in range(pages):
         replies_cur_page = parse_html(fetch_url(form_url(oid=oid, page=i)))
         for reply in replies_cur_page:
@@ -82,28 +71,56 @@ if __name__ == '__main__':
 
     comments = []
     for reply in replies:
-        # mid, floor, username, gender, ctime, content, likes, rcounts, rpid
+        # mid, username, gender, ctime, content, likes, rcounts, rpid
         comment = Comment(mid=reply['mid'],
-                          username=reply['member']['uname'], 
+                          username=reply['member']['uname'],
                           gender=reply['member']['sex'],
                           ctime=reply['ctime'],
                           content=reply['content']['message'],
                           likes=reply['like'],
                           rcount=reply['rcount'],
                           rpid=reply['rpid'])
-        comments.append(comment)
+        comments.append(comment.values())
         if reply['rcount'] > 0:
             for item in reply['replies']:
                 comment = Comment(mid=item['mid'],
-                                  username=item['member']['uname'], 
+                                  username=item['member']['uname'],
                                   gender=item['member']['sex'],
                                   ctime=item['ctime'],
                                   content=item['content']['message'],
                                   likes=item['like'],
                                   rcount=item['rcount'],
                                   rpid=item['rpid'])
-                comments.append(comment)
+                comments.append(comment.values())
+    dbhelper.insert_comment(c, conn, comments)
 
-    for item in comments:
-        if dbhelper.get_comment_by_id(c, item.rpid) == []:
-            dbhelper.insert_comment(c, conn, item)
+
+# 根据番剧第一集的url获取所有集的oid
+def get_paly_oids(play_url):
+    html = fetch_url(play_url)
+    oids = re.findall(r'"aid":(\d{8}),', html)
+    return list(set([int(oid) for oid in oids]))
+
+
+# 获取番剧的所有评论
+def get_play_comments(play_url):
+    oids = get_paly_oids(play_url)
+    for oid in oids:
+        get_av_comments(oid)
+
+
+if __name__ == '__main__':
+    conn, c = dbhelper.connect_db()
+    # 创建数据表
+    dbhelper.create_table(c)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-type", type=str, help="视频(-video), 番剧(-play)")
+    parser.add_argument("-url", type=str, help="the exponent")
+    args = parser.parse_args()
+    url = args.url
+    if args.type == 'video':
+        oid = re.findall(r'www.bilibili.com/video/av(\d{8}).*', url)[0]
+        get_av_comments(int(oid))
+    elif args.type == 'play':
+        get_play_comments(url)
+    conn.close()
